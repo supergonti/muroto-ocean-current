@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>室戸沖潮流ダッシュボード V2.0</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <!--
+    muroto_offshore_current_dashboard_data.js が存在すれば window.MUROTO_CSV_TEXT が自動セットされる。
+    存在しない場合は onerror でフラグを立てるだけ（エラーは無視）。
+    → update_offshore_dashboard_data.py を1回実行すると以降は自動読み込みされる。
+  -->
+  <script src="./muroto_offshore_current_dashboard_data.js" onerror="window._dataJsMissing=true"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+      background: #eef1f5;
+      color: #2c3e50;
+      min-height: 100vh;
+    }
+
+    /* ===== HEADER ===== */
+    header {
+      background: #1a3a6c;
+      color: white;
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+      position: sticky; top: 0; z-index: 200;
+      gap: 12px;
+    }
+    header h1 { font-size: 1.1rem; font-weight: 600; letter-spacing: 0.04em; white-space: nowrap; }
+    #headerMeta { font-size: 0.76rem; opacity: 0.65; white-space: nowrap; }
+    #headerStatus { font-size: 0.8rem; opacity: 0.9; white-space: nowrap; }
+
+    .hdr-btn {
+      border: none; border-radius: 6px;
+      padding: 7px 14px; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; white-space: nowrap; transition: all 0.18s;
+    }
+    #reloadBtn  { background: white; color: #1a3a6c; }
+    #reloadBtn:hover  { background: #d8eaff; }
+    #manualBtn  { background: transparent; color: rgba(255,255,255,0.75); border: 1px solid rgba(255,255,255,0.35); }
+    #manualBtn:hover  { background: rgba(255,255,255,0.15); color: white; }
+    #fileInput { display: none; }
+
+    /* ===== MAIN ===== */
+    main { max-width: 1100px; margin: 0 auto; padding: 22px 18px; }
+
+    /* ===== STATUS BANNER ===== */
+    #statusBanner {
+      background: white; border-radius: 10px;
+      padding: 36px 20px; text-align: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 18px;
+    }
+    #statusBanner .s-icon  { font-size: 2rem; margin-bottom: 8px; }
+    #statusBanner .s-msg   { font-size: 0.93rem; color: #444; }
+    #statusBanner .s-sub   { font-size: 0.8rem; color: #999; margin-top: 5px; white-space: pre-line; }
+    #statusBanner .s-path  {
+      font-family: monospace; font-size: 0.75rem;
+      background: #f0f2f5; border-radius: 6px;
+      padding: 7px 12px; margin-top: 10px; color: #555; word-break: break-all;
+    }
+    .spinner {
+      display: inline-block; width: 26px; height: 26px;
+      border: 3px solid #cce; border-top-color: #1a3a6c;
+      border-radius: 50%; animation: spin 0.75s linear infinite; margin-bottom: 10px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== DROP ZONE ===== */
+    #dropZone {
+      display: none; border: 2px dashed #a0b4cc; border-radius: 10px;
+      background: white; padding: 32px 20px; text-align: center;
+      color: #7f8c8d; cursor: pointer;
+      transition: border-color 0.18s, background 0.18s; margin-bottom: 18px;
+    }
+    #dropZone.dragover { border-color: #1a3a6c; background: #edf4ff; }
+    #dropZone p { font-size: 0.88rem; margin-top: 6px; }
+    #dropZone small { font-size: 0.76rem; color: #bbb; margin-top: 3px; display: block; }
+
+    /* ===== CONTENT ===== */
+    #content { display: none; }
+
+    /* ===== SECTION ===== */
+    .section { margin-bottom: 22px; }
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px; padding-bottom: 6px;
+      border-bottom: 2px solid #c5d5ea; cursor: pointer; user-select: none;
+    }
+    .section-header:hover .section-title { color: #2558b0; }
+    .section-title {
+      font-size: 0.98rem; font-weight: 700; color: #1a3a6c;
+      display: flex; align-items: center; gap: 7px; transition: color 0.15s;
+    }
+    .toggle-btn {
+      background: none; border: none; font-size: 0.82rem; color: #7f8c8d;
+      cursor: pointer; padding: 2px 8px; border-radius: 4px;
+      transition: background 0.15s; display: flex; align-items: center; gap: 4px;
+    }
+    .toggle-btn:hover { background: #dde8f4; }
+    .toggle-arrow { display: inline-block; transition: transform 0.22s; }
+    .section-body {
+      overflow: hidden; transition: max-height 0.3s ease, opacity 0.25s ease;
+      max-height: 3000px; opacity: 1;
+    }
+    .section-body.collapsed { max-height: 0 !important; opacity: 0; }
+
+    /* ===== CARD GRID ===== */
+    .card-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 11px;
+    }
+    .card {
+      background: white; border-radius: 10px;
+      padding: 15px 17px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .card .label { font-size: 0.74rem; color: #7f8c8d; margin-bottom: 4px; }
+    .card .value { font-size: 1.4rem; font-weight: 700; color: #1a3a6c; }
+    .card .value.ok    { color: #27ae60; }
+    .card .value.warn  { color: #e67e22; }
+    .card .sub { font-size: 0.73rem; color: #95a5a6; margin-top: 3px; }
+
+    /* ===== TABS ===== */
+    .tabs { display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; }
+    .tab-btn {
+      padding: 5px 15px; border: 1px solid #c5d5ea; border-radius: 20px;
+      background: white; font-size: 0.84rem; cursor: pointer; color: #555;
+      transition: background 0.13s, color 0.13s;
+    }
+    .tab-btn.active { background: #1a3a6c; color: white; border-color: #1a3a6c; }
+    .tab-btn:hover:not(.active) { background: #eef4ff; }
+
+    /* ===== PERIOD ===== */
+    .period-row { display: flex; gap: 6px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
+    .period-row label { font-size: 0.82rem; color: #666; }
+    .period-btn {
+      padding: 4px 12px; border: 1px solid #c5d5ea; border-radius: 6px;
+      background: white; font-size: 0.79rem; cursor: pointer; color: #555; transition: background 0.13s;
+    }
+    .period-btn.active { background: #2980b9; color: white; border-color: #2980b9; }
+
+    /* ===== CUSTOM RANGE ===== */
+    .custom-range-row {
+      display: flex; gap: 6px; margin-top: 8px; align-items: center; flex-wrap: wrap;
+    }
+    .custom-range-row label { font-size: 0.82rem; color: #666; }
+    .date-input {
+      border: 1px solid #c5d5ea; border-radius: 6px;
+      padding: 3px 8px; font-size: 0.79rem; color: #555; background: white;
+    }
+    .reset-btn {
+      padding: 4px 10px; border: 1px solid #e74c3c; border-radius: 6px;
+      background: white; font-size: 0.79rem; cursor: pointer; color: #e74c3c; transition: background 0.13s;
+    }
+    .reset-btn:hover { background: #fdebd0; }
+
+    /* ===== CHARTS ===== */
+    .charts-area { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+    .chart-card {
+      background: white; border-radius: 10px;
+      padding: 14px 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .chart-card canvas { display: block; }
+    .chart-label { font-size: 0.78rem; color: #7f8c8d; margin-bottom: 8px; }
+
+    /* ===== TABLE (sticky header + scrollable body) ===== */
+    .table-wrap {
+      background: white; border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08); overflow: hidden;
+    }
+    .table-scroll-outer {
+      max-height: 360px;
+      overflow-y: auto;
+    }
+    /* Custom scrollbar */
+    .table-scroll-outer::-webkit-scrollbar { width: 6px; }
+    .table-scroll-outer::-webkit-scrollbar-track { background: #f0f2f5; }
+    .table-scroll-outer::-webkit-scrollbar-thumb { background: #c5d5ea; border-radius: 3px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+    thead th {
+      background: #1a3a6c; color: white;
+      padding: 9px 11px; text-align: center;
+      font-weight: 600; font-size: 0.79rem;
+      position: sticky; top: 0; z-index: 10;
+    }
+    td { padding: 8px 11px; text-align: center; border-bottom: 1px solid #f0f2f5; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f6f9ff; }
+    td.date-col { text-align: left; font-weight: 500; color: #34495e; white-space: nowrap; }
+
+    /* ===== ARROW ===== */
+    .arrow-cell { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+    .arrow { font-size: 1.2rem; line-height: 1; display: inline-block; color: #1a3a6c; }
+    .dir-lbl { font-size: 0.68rem; color: #95a5a6; }
+
+    .speed-low { color: #2980b9; }
+    .speed-mid { color: #27ae60; }
+    .speed-hi  { color: #e74c3c; font-weight: 700; }
+
+    /* ===== COORD BAR ===== */
+    .coord-bar {
+      display: flex; flex-wrap: wrap; gap: 5px 16px;
+      margin-top: 11px; padding: 9px 14px;
+      background: #f4f7fb; border-radius: 8px;
+      font-size: 0.72rem; color: #5a6a7a;
+    }
+    .coord-bar strong { color: #1a3a6c; margin-right: 4px; }
+    .coord-item { white-space: nowrap; }
+
+    /* ===== MISSING ===== */
+    .missing-wrap {
+      background: white; border-radius: 10px;
+      padding: 15px 17px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .summary-bar  { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 12px; }
+    .summary-pill { padding: 4px 11px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; }
+    .pill-ok   { background: #d5f5e3; color: #1e8449; }
+    .pill-warn { background: #fdebd0; color: #ba4a00; }
+    .missing-ok { color: #27ae60; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 7px; }
+    .m-row {
+      display: flex; align-items: flex-start; gap: 9px;
+      margin-bottom: 9px; padding-bottom: 9px; border-bottom: 1px solid #f0f2f5;
+    }
+    .m-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .pt-badge {
+      min-width: 40px; text-align: center; padding: 2px 7px;
+      border-radius: 5px; font-size: 0.77rem; font-weight: 600;
+      background: #1a3a6c; color: white; margin-top: 2px; flex-shrink: 0;
+    }
+    .m-items { font-size: 0.79rem; }
+    .missing-item {
+      display: inline-block; background: #ffeaa7;
+      border: 1px solid #fdcb6e; border-radius: 4px;
+      padding: 2px 8px; margin: 2px; color: #636e72;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:baseline;gap:10px;min-width:0;flex:1">
+    <h1>🌊 室戸沖潮流ダッシュボード V2.0</h1>
+    <span id="headerMeta"></span>
+  </div>
+  <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+    <span id="headerStatus"></span>
+    <button class="hdr-btn" id="reloadBtn" onclick="reloadData()" title="データを再読み込み">🔄 再読み込み</button>
+    <button class="hdr-btn" id="manualBtn" onclick="document.getElementById('fileInput').click()" title="別のCSVを手動選択">📂 手動選択</button>
+    <input type="file" id="fileInput" accept=".csv">
+  </div>
+</header>
+
+<main>
+  <div id="statusBanner"></div>
+
+  <div id="dropZone">
+    <div style="font-size:1.8rem;margin-bottom:6px">📊</div>
+    <p>CSVファイルをここにドラッグ＆ドロップ</p>
+    <p>または上の「手動選択」ボタンをクリック</p>
+    <small>対象: muroto_offshore_current_all.csv</small>
+  </div>
+
+  <div id="content">
+
+    <!-- ① ダッシュボード（折りたたみ可） -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSection('dashboard')">
+        <div class="section-title">📋 ダッシュボード</div>
+        <button class="toggle-btn">
+          <i class="toggle-arrow" id="dashboardArrow">▼</i>
+          <span id="dashboardToggleLabel">折りたたむ</span>
+        </button>
+      </div>
+      <div class="section-body" id="dashboardBody">
+        <div class="card-grid">
+          <div class="card">
+            <div class="label">総データ行数</div>
+            <div class="value" id="totalRows">—</div>
+            <div class="sub"  id="totalRowsSub"></div>
+          </div>
+          <div class="card">
+            <div class="label">データ開始日</div>
+            <div class="value" style="font-size:1rem" id="dateFrom">—</div>
+          </div>
+          <div class="card">
+            <div class="label">最終取得日</div>
+            <div class="value" style="font-size:1rem" id="dateTo">—</div>
+          </div>
+          <div class="card">
+            <div class="label">蓄積日数</div>
+            <div class="value" id="totalDays">—</div>
+            <div class="sub">日間</div>
+          </div>
+          <div class="card">
+            <div class="label">欠損チェック</div>
+            <div class="value" id="missingStatus">—</div>
+            <div class="sub"  id="missingStatusSub"></div>
+          </div>
+          <div class="card">
+            <div class="label">最新日・室戸沖点　流速</div>
+            <div class="value" id="latestSpeed">—</div>
+            <div class="sub"  id="latestSpeedSub"></div>
+          </div>
+        </div>
+        <!-- 測定地点 緯度・経度 -->
+        <div class="coord-bar">
+          <span class="coord-item"><strong>北西</strong>33.3567°N / 134.1733°E</span>
+          <span class="coord-item"><strong>西</strong>33.2667°N / 134.1733°E</span>
+          <span class="coord-item"><strong>室戸沖</strong>33.2667°N / 134.2833°E</span>
+          <span class="coord-item"><strong>東</strong>33.2667°N / 134.3933°E</span>
+          <span class="coord-item"><strong>北東</strong>33.3567°N / 134.3933°E</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ② 5地点データビューア -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSection('viewer')">
+        <div class="section-title">🗺️ 5地点データビューア</div>
+        <button class="toggle-btn">
+          <i class="toggle-arrow" id="viewerArrow">▼</i>
+          <span id="viewerToggleLabel">折りたたむ</span>
+        </button>
+      </div>
+      <div class="section-body" id="viewerBody">
+        <!-- 地点タブ -->
+        <div class="tabs">
+          <button class="tab-btn" data-point="北西" onclick="selectPoint(this)">北西</button>
+          <button class="tab-btn" data-point="西" onclick="selectPoint(this)">西</button>
+          <button class="tab-btn active" data-point="室戸沖" onclick="selectPoint(this)">室戸沖</button>
+          <button class="tab-btn" data-point="東" onclick="selectPoint(this)">東</button>
+          <button class="tab-btn" data-point="北東" onclick="selectPoint(this)">北東</button>
+        </div>
+        <!-- 期間選択 -->
+        <div class="period-row">
+          <label>表示期間：</label>
+          <button class="period-btn" data-days="7"   onclick="selectPeriod(this)">直近7日</button>
+          <button class="period-btn" data-days="14"  onclick="selectPeriod(this)">直近14日</button>
+          <button class="period-btn active" data-days="30"  onclick="selectPeriod(this)">直近30日</button>
+          <button class="period-btn" data-days="90"  onclick="selectPeriod(this)">直近90日</button>
+          <button class="period-btn" data-days="365" onclick="selectPeriod(this)">直近365日</button>
+          <button class="period-btn" data-days="9999" onclick="selectPeriod(this)">全期間</button>
+        </div>
+        <!-- 任意期間指定 -->
+        <div class="custom-range-row">
+          <label>期間指定：</label>
+          <input type="date" id="rangeStart" class="date-input">
+          <span style="color:#666;font-size:0.82rem">〜</span>
+          <input type="date" id="rangeEnd" class="date-input">
+          <button class="period-btn" onclick="applyCustomRange()">適用</button>
+          <button class="reset-btn" id="resetRangeBtn" style="display:none" onclick="clearCustomRange()">✕ リセット</button>
+        </div>
+
+        <!-- グラフ（テーブルの上） -->
+        <div class="charts-area">
+          <div class="chart-card">
+            <div class="chart-label" id="chartLabel1">流速（kn）・水温（℃）</div>
+            <div style="position:relative;height:185px">
+              <canvas id="chartSpeed"></canvas>
+              <!-- 方位記号（円＋北三角矢印） -->
+              <svg id="compassRose" width="40" height="50" viewBox="0 0 80 100"
+                   style="position:absolute;top:-8px;right:52px;opacity:0.45;pointer-events:none;">
+                <!-- N ラベル -->
+                <text x="40" y="14" text-anchor="middle" font-size="16" font-weight="bold"
+                      fill="#1a3a6c" font-family="Arial,sans-serif">N</text>
+                <!-- 外円 -->
+                <circle cx="40" cy="60" r="28" fill="none" stroke="#1a3a6c" stroke-width="3"/>
+                <!-- 北向き三角矢印（塗りつぶし） -->
+                <polygon points="40,34 22,76 40,66 58,76" fill="#1a3a6c"/>
+              </svg>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-label" id="chartLabel2">塩分濃度（psu）</div>
+            <div style="position:relative;height:185px">
+              <canvas id="chartSalinity"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- テーブル（ヘッダー固定・ボディスクロール） -->
+        <div class="table-wrap">
+          <div class="table-scroll-outer">
+            <table>
+              <thead>
+                <tr>
+                  <th style="text-align:left;min-width:90px">日付</th>
+                  <th style="min-width:72px">流向</th>
+                  <th>流速(kn)</th>
+                  <th>流速(m/s)</th>
+                  <th>水温(℃)</th>
+                  <th>塩分(psu)</th>
+                </tr>
+              </thead>
+              <tbody id="dataTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ④ 欠損データチェッカー -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSection('missing')">
+        <div class="section-title">🔍 欠損データチェッカー</div>
+        <button class="toggle-btn">
+          <i class="toggle-arrow" id="missingArrow">▼</i>
+          <span id="missingToggleLabel">折りたたむ</span>
+        </button>
+      </div>
+      <div class="section-body" id="missingBody">
+        <div class="missing-wrap">
+          <div class="summary-bar" id="missingSummaryBar"></div>
+          <div id="missingDetail"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+<script>
+// =====================================================
+// グローバル
+// =====================================================
+let allData = [];
+let currentPoint    = '室戸沖';
+let currentDays     = 30;
+let customStartDate = null;
+let customEndDate   = null;
+let chartSpeedInst    = null;
+let chartSalinityInst = null;
+const POINTS = ['北西','西','室戸沖','東','北東'];
+const sectionOpen = { dashboard: true, viewer: true, missing: true };
+
+// ===== Y軸固定範囲（流速のみ固定） =====
+const AXIS_SPEED_MIN  = 0,   AXIS_SPEED_MAX  = 3.0;
+
+// =====================================================
+// 折りたたみ
+// =====================================================
+function toggleSection(name) {
+  sectionOpen[name] = !sectionOpen[name];
+  const body  = document.getElementById(name + 'Body');
+  const arrow = document.getElementById(name + 'Arrow');
+  const label = document.getElementById(name + 'ToggleLabel');
+  body.classList.toggle('collapsed', !sectionOpen[name]);
+  arrow.style.transform = sectionOpen[name] ? 'rotate(0deg)' : 'rotate(-90deg)';
+  label.textContent = sectionOpen[name] ? '折りたたむ' : '展開する';
+}
+
+// =====================================================
+// ステータス表示
+// =====================================================
+function showBanner(type, icon, msg, sub, pathHint) {
+  const el = document.getElementById('statusBanner');
+  document.getElementById('content').style.display   = 'none';
+  document.getElementById('dropZone').style.display  = 'none';
+  if (type === 'none') { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  el.innerHTML = (type === 'loading')
+    ? `<div class="spinner"></div><div class="s-msg">${msg}</div>${pathHint ? `<div class="s-path">${pathHint}</div>` : ''}`
+    : `<div class="s-icon">${icon}</div><div class="s-msg">${msg}</div><div class="s-sub">${sub||''}</div>${pathHint ? `<div class="s-path">${pathHint}</div>` : ''}`;
+}
+function hideBanner() {
+  document.getElementById('statusBanner').style.display = 'none';
+}
+
+// =====================================================
+// 自動読み込み（ページ起動時）
+// ——仕組み——
+//   <head> 内の静的 <script src="./muroto_dashboard_data.js"> が
+//   ページ読み込みと同時に実行され window.MUROTO_CSV_TEXT をセットする。
+//   これは file:// でも確実に動く。
+//   → update_dashboard_data.py を1回実行した後は自動読み込みされる。
+// =====================================================
+function autoLoad() {
+  hideBanner();
+  if (window.MUROTO_CSV_TEXT) {
+    parseCSV(window.MUROTO_CSV_TEXT, '自動読み込み');
+    return;
+  }
+  // data.js がない or 失敗 → ドロップゾーンを表示
+  document.getElementById('content').style.display  = 'none';
+  document.getElementById('dropZone').style.display = 'block';
+  document.getElementById('headerStatus').innerHTML =
+    '<span style="color:#f0b844;font-size:0.78rem">' +
+    '⚠️ data.js が見つかりません — update_offshore_dashboard_data.py を実行してください</span>';
+}
+
+// =====================================================
+// 再読み込みボタン → ページをリロードして data.js を再取得
+// =====================================================
+function reloadData() {
+  window.location.reload();
+}
+
+// =====================================================
+// ファイル手動選択 / ドロップ
+// =====================================================
+document.getElementById('fileInput').addEventListener('change', e => {
+  if (e.target.files[0]) readFileObj(e.target.files[0]);
+});
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('dragover');
+  if (e.dataTransfer.files[0]) readFileObj(e.dataTransfer.files[0]);
+});
+dz.addEventListener('click', () => document.getElementById('fileInput').click());
+
+function readFileObj(file) {
+  showBanner('loading', '', `${file.name} を読み込んでいます…`);
+  const r = new FileReader();
+  r.onload = e => parseCSV(e.target.result, file.name);
+  r.readAsText(file, 'UTF-8');
+}
+
+// =====================================================
+// CSV パース
+// =====================================================
+function parseCSV(text, label) {
+  hideBanner();
+  document.getElementById('dropZone').style.display = 'none';
+
+  // BOM除去してから解析
+  const lines = text.replace(/^\uFEFF/, '').trim().split('\n');
+  const headers = lines[0].split(',').map(h => h.trim());
+  allData = [];
+  for (let i = 1; i < lines.length; i++) {
+    const vals = lines[i].split(',').map(v => v.trim());
+    if (vals.length < headers.length) continue;
+    const row = {};
+    headers.forEach((h, idx) => row[h] = vals[idx]);
+    row.speed_kn  = parseFloat(row.speed_kn);
+    row.speed_ms  = parseFloat(row.speed_ms);
+    row.direction = parseFloat(row.direction);
+    row.temp_c    = parseFloat(row.temp_c);
+    row.salinity  = parseFloat(row.salinity);
+    allData.push(row);
+  }
+
+  const dates = uniqDates();
+  document.getElementById('headerMeta').textContent   = label || '';
+  document.getElementById('headerStatus').textContent = `最終取得: ${dates[dates.length-1]}`;
+  document.getElementById('content').style.display    = 'block';
+  // 日付入力のmin/maxをデータ範囲に設定
+  const rs = document.getElementById('rangeStart');
+  const re = document.getElementById('rangeEnd');
+  if (rs && re && dates.length > 0) {
+    rs.min = re.min = dates[0];
+    rs.max = re.max = dates[dates.length-1];
+  }
+
+  try { buildDashboard();     } catch(e) { console.error('dashboard:', e); }
+  try { buildViewer();        } catch(e) { console.error('viewer:', e); }
+  try { buildMissingChecker();} catch(e) { console.error('missing:', e); }
+}
+
+// =====================================================
+// ① ダッシュボード
+// =====================================================
+function buildDashboard() {
+  const dates = uniqDates();
+  const totalDays = dates.length;
+  document.getElementById('totalRows').textContent    = allData.length.toLocaleString();
+  document.getElementById('totalRowsSub').textContent = `(5地点 × ${totalDays}日)`;
+  document.getElementById('dateFrom').textContent     = dates[0];
+  document.getElementById('dateTo').textContent       = dates[dates.length-1];
+  document.getElementById('totalDays').textContent    = totalDays.toLocaleString();
+
+  const gap = getMissingDates(dates);
+  const mel  = document.getElementById('missingStatus');
+  if (gap.length === 0) {
+    mel.textContent = '✅ なし'; mel.className = 'value ok';
+    document.getElementById('missingStatusSub').textContent = '全日付に欠損なし';
+  } else {
+    mel.textContent = `⚠️ ${gap.length}日`; mel.className = 'value warn';
+    document.getElementById('missingStatusSub').textContent = '欠損あり（下記参照）';
+  }
+
+  const last = allData.find(r => r.date === dates[dates.length-1] && r.point === '室戸沖');
+  if (last) {
+    document.getElementById('latestSpeed').textContent    = `${last.speed_kn.toFixed(2)} kn`;
+    document.getElementById('latestSpeedSub').textContent =
+      `${dirLabel(last.direction)}（${last.direction.toFixed(0)}°）`;
+  }
+}
+
+// =====================================================
+// ② データビューア
+// =====================================================
+function buildViewer() {
+  try { renderSpeedChart();    } catch(e) { console.error('speed chart:', e); }
+  try { renderSalinityChart(); } catch(e) { console.error('salinity chart:', e); }
+  try { renderTable();         } catch(e) { console.error('table:', e); }
+}
+
+function refreshViewer() {
+  try { renderSpeedChart();    } catch(e) { console.error('speed chart:', e); }
+  try { renderSalinityChart(); } catch(e) { console.error('salinity chart:', e); }
+  try { renderTable();         } catch(e) { console.error('table:', e); }
+}
+
+function selectPoint(btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentPoint = btn.dataset.point;
+  refreshViewer();
+}
+function selectPeriod(btn) {
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentDays = parseInt(btn.dataset.days);
+  // 任意期間をリセット
+  customStartDate = null;
+  customEndDate   = null;
+  const rb = document.getElementById('resetRangeBtn');
+  if (rb) rb.style.display = 'none';
+  refreshViewer();
+}
+function applyCustomRange() {
+  const s = document.getElementById('rangeStart').value;
+  const e = document.getElementById('rangeEnd').value;
+  if (!s || !e) { alert('開始日と終了日を両方指定してください'); return; }
+  if (s > e)    { alert('開始日は終了日より前にしてください'); return; }
+  customStartDate = s;
+  customEndDate   = e;
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  const rb = document.getElementById('resetRangeBtn');
+  if (rb) rb.style.display = 'inline-block';
+  refreshViewer();
+}
+function clearCustomRange() {
+  customStartDate = null;
+  customEndDate   = null;
+  const rb = document.getElementById('resetRangeBtn');
+  if (rb) rb.style.display = 'none';
+  const def = document.querySelector('.period-btn[data-days="30"]');
+  if (def) { def.classList.add('active'); currentDays = 30; }
+  refreshViewer();
+}
+
+function getFiltered() {
+  // 任意期間指定が有効なら日付範囲でフィルタ
+  if (customStartDate && customEndDate) {
+    return allData
+      .filter(r => r.point === currentPoint && r.date >= customStartDate && r.date <= customEndDate)
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }
+  // 直近N日モード
+  const allDates = uniqDates();
+  const show     = new Set(allDates.slice(-currentDays));
+  return allData
+    .filter(r => r.point === currentPoint && show.has(r.date))
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+// --------- テーブル ---------
+function renderTable() {
+  const rows  = getFiltered();
+  const tbody = document.getElementById('dataTableBody');
+  tbody.innerHTML = '';
+  rows.forEach(r => {
+    const cls = isNaN(r.speed_kn) ? '' :
+                r.speed_kn < 0.5 ? 'speed-low' :
+                r.speed_kn < 1.5 ? 'speed-mid' : 'speed-hi';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="date-col">${r.date}</td>
+      <td>
+        <div class="arrow-cell">
+          <span class="arrow" style="transform:rotate(${r.direction||0}deg);display:inline-block">↑</span>
+          <span class="dir-lbl">${isNaN(r.direction)?'—':`${r.direction.toFixed(0)}° ${dirLabel(r.direction)}`}</span>
+        </div>
+      </td>
+      <td class="${cls}">${isNaN(r.speed_kn)?'—':`<strong>${r.speed_kn.toFixed(2)}</strong>`}</td>
+      <td>${isNaN(r.speed_ms)?'—':r.speed_ms.toFixed(3)}</td>
+      <td>${isNaN(r.temp_c)?'—':r.temp_c.toFixed(2)}</td>
+      <td>${isNaN(r.salinity)?'—':r.salinity.toFixed(3)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// --------- グラフ共通 ---------
+function chartCommon() {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false }
+  };
+}
+
+// --------- 流向矢印キャッシュ ---------
+// 角度10°刻み × 4サイズ = 最大144個のcanvasを再利用。毎回新規生成しない。
+const _arrowCache = {};
+
+function getArrowCanvas(deg, canvasSize) {
+  const rd = ((Math.round(deg / 10) * 10) % 360 + 360) % 360;
+  const key = rd + '_' + canvasSize;
+  if (_arrowCache[key]) return _arrowCache[key];
+
+  // ★正方形canvas（回転しても全方向で同サイズ）
+  const S  = canvasSize;
+  const cv = document.createElement('canvas');
+  cv.width = S; cv.height = S;
+  const g  = cv.getContext('2d');
+
+  g.translate(S / 2, S / 2);
+  g.rotate(rd * Math.PI / 180);
+
+  // 正方形の中に細長い矢印を描画
+  // 回転時のはみ出し防止: 対角線の70%以内に収める
+  const tip = -S * 0.34;    // 先端（上）
+  const hw  =  S * 0.14;    // 矢じりの半幅
+  const sh  = -S * 0.08;    // 矢じり肩のY
+  const tw  =  S * 0.035;   // シャフトの半幅（極細）
+  const bt  =  S * 0.34;    // シャフト末端（下）
+
+  g.beginPath();
+  g.moveTo(0,    tip);  // 先端
+  g.lineTo( hw,  sh );  // 右肩
+  g.lineTo( tw,  sh );  // 右シャフト上
+  g.lineTo( tw,  bt );  // 右シャフト下
+  g.lineTo(-tw,  bt );  // 左シャフト下
+  g.lineTo(-tw,  sh );  // 左シャフト上
+  g.lineTo(-hw,  sh );  // 左肩
+  g.closePath();
+
+  g.fillStyle = '#1a3a6c';
+  g.fill();
+
+  _arrowCache[key] = cv;
+  return cv;
+}
+
+// --------- 流速＋水温チャート ---------
+function renderSpeedChart() {
+  const rows   = getFiltered().slice().reverse();
+  const labels = rows.map(r => (r.date || '').slice(5).replace('-', '/'));
+  const spd    = rows.map(r => isNaN(r.speed_kn) ? null : parseFloat(r.speed_kn.toFixed(3)));
+  const tmp    = rows.map(r => isNaN(r.temp_c)   ? null : r.temp_c);
+
+  // 矢印: canvasサイズ（解像度）と表示半径を期間で切り替え
+  // 正方形canvas解像度（大きいほど高精細）
+  const arrowCvS = currentDays <= 7  ? 40 :
+                   currentDays <= 14 ? 36 :
+                   currentDays <= 30 ? 30 : 24;
+  // pointRadius = Chart.jsの描画半径（＝矢印の見た目サイズ）
+  const arrowR   = currentDays <= 7  ? 12 :
+                   currentDays <= 14 ? 11 :
+                   currentDays <= 30 ?  9 : 6;
+  const arrowPts = rows.map(r =>
+    getArrowCanvas(isNaN(r.direction) ? 0 : r.direction, arrowCvS)
+  );
+  const tmpR = currentDays <= 30 ? 2 : 1;
+
+  document.getElementById('chartLabel1').textContent =
+    `【${currentPoint}点】直近${currentDays}日　流速（kn）・水温（℃）`;
+
+  const ctx = document.getElementById('chartSpeed').getContext('2d');
+  if (chartSpeedInst) chartSpeedInst.destroy();
+  chartSpeedInst = new Chart(ctx, {
+    data: {
+      labels,
+      datasets: [
+        {
+          type: 'line', label: '流速(kn)', data: spd, yAxisID: 'ySpd',
+          borderColor: '#1a3a6c', backgroundColor: 'rgba(26,58,108,0.07)',
+          borderWidth: 2,
+          pointStyle:      arrowPts,       // ← キャッシュ済み矢印canvas
+          pointRadius:     arrowR,
+          pointHoverRadius: arrowR + 2,
+          hitRadius:       arrowR + 4,
+          tension: 0.3, fill: true, spanGaps: true
+        },
+        {
+          type: 'line', label: '水温(℃)', data: tmp, yAxisID: 'yTmp',
+          borderColor: '#e74c3c', backgroundColor: 'transparent',
+          borderWidth: 1.5, pointRadius: tmpR, pointHoverRadius: tmpR + 2,
+          tension: 0.3, borderDash: [4,3], spanGaps: true
+        }
+      ]
+    },
+    options: {
+      ...chartCommon(),
+      plugins: { legend: { labels: { font: { size: 10 } } } },
+      scales: {
+        ySpd: {
+          type: 'linear', position: 'left',
+          min: AXIS_SPEED_MIN, max: AXIS_SPEED_MAX,
+          title: { display: true, text: '流速(kn)', font: { size: 10 } },
+          ticks: { font: { size: 10 } }
+        },
+        yTmp: {
+          type: 'linear', position: 'right',
+          title: { display: true, text: '水温(℃)', font: { size: 10 } },
+          ticks: { font: { size: 10 } }, grid: { drawOnChartArea: false }
+        },
+        x: { ticks: { font: { size: 10 }, maxTicksLimit: 15 } }
+      }
+    }
+  });
+}
+
+// --------- 塩分チャート ---------
+function renderSalinityChart() {
+  const rows   = getFiltered().slice().reverse();
+  const labels = rows.map(r => (r.date || '').slice(5).replace('-', '/'));
+  const sal    = rows.map(r => isNaN(r.salinity) ? null : r.salinity);
+  const salR   = currentDays <= 30 ? 2 : 1;
+
+  document.getElementById('chartLabel2').textContent =
+    `【${currentPoint}点】直近${currentDays}日　塩分濃度（psu）`;
+
+  const ctx = document.getElementById('chartSalinity').getContext('2d');
+  if (chartSalinityInst) chartSalinityInst.destroy();
+  chartSalinityInst = new Chart(ctx, {
+    data: {
+      labels,
+      datasets: [
+        {
+          type: 'line', label: '塩分(psu)', data: sal,
+          borderColor: '#16a085', backgroundColor: 'rgba(22,160,133,0.08)',
+          borderWidth: 1.8, pointRadius: salR, tension: 0.3, fill: true, spanGaps: true
+        }
+      ]
+    },
+    options: {
+      ...chartCommon(),
+      plugins: { legend: { labels: { font: { size: 10 } } } },
+      scales: {
+        y: {
+          title: { display: true, text: '塩分(psu)', font: { size: 10 } },
+          ticks: { font: { size: 10 } }
+        },
+        x: { ticks: { font: { size: 10 }, maxTicksLimit: 15 } }
+      }
+    }
+  });
+}
+
+// =====================================================
+// ④ 欠損チェッカー
+// =====================================================
+function buildMissingChecker() {
+  const allDates = uniqDates();
+  const gaps     = getMissingDates(allDates);
+  const sumBar   = document.getElementById('missingSummaryBar');
+  const detail   = document.getElementById('missingDetail');
+  sumBar.innerHTML = '';
+  detail.innerHTML = '';
+
+  // サマリーピル
+  const gapPill = mkPill(gaps.length === 0,
+    gaps.length === 0
+      ? `✅ 日付連続性 : 欠損なし（${allDates.length}日連続）`
+      : `⚠️ 日付ギャップ : ${gaps.length}日`);
+  sumBar.appendChild(gapPill);
+
+  POINTS.forEach(pt => {
+    const ptSet = new Set(allData.filter(r => r.point === pt).map(r => r.date));
+    const miss  = allDates.filter(d => !ptSet.has(d));
+    sumBar.appendChild(mkPill(miss.length === 0,
+      miss.length === 0 ? `✅ ${pt}点 : 欠損なし` : `⚠️ ${pt}点 : ${miss.length}日欠損`));
+  });
+
+  // 全OK
+  const allOk = gaps.length === 0 &&
+    POINTS.every(pt => {
+      const s = new Set(allData.filter(r => r.point === pt).map(r => r.date));
+      return allDates.every(d => s.has(d));
+    });
+  if (allOk) {
+    detail.innerHTML = `<div class="missing-ok">✅ すべての地点・すべての日付でデータが揃っています。</div>`;
+    return;
+  }
+
+  // ギャップ詳細
+  if (gaps.length > 0) detail.appendChild(mkMRow('GAP', '#e74c3c', gaps, `連続性の欠落（${gaps.length}件）`));
+  POINTS.forEach(pt => {
+    const s    = new Set(allData.filter(r => r.point === pt).map(r => r.date));
+    const miss = allDates.filter(d => !s.has(d));
+    if (miss.length > 0) detail.appendChild(mkMRow(pt, '#1a3a6c', miss, `${miss.length}件の欠損`));
+  });
+}
+
+function mkPill(ok, txt) {
+  const s = document.createElement('span');
+  s.className = 'summary-pill ' + (ok ? 'pill-ok' : 'pill-warn');
+  s.textContent = txt;
+  return s;
+}
+function mkMRow(badge, color, dates, desc) {
+  const row = document.createElement('div');
+  row.className = 'm-row';
+  row.innerHTML = `<span class="pt-badge" style="background:${color}">${badge}</span>
+    <div><div style="font-size:0.79rem;color:#555;margin-bottom:3px">${desc}</div>
+    <div class="m-items">${dates.map(d=>`<span class="missing-item">${d}</span>`).join('')}</div></div>`;
+  return row;
+}
+
+// =====================================================
+// ユーティリティ
+// =====================================================
+function uniqDates() {
+  return [...new Set(allData.map(r => r.date))].sort();
+}
+function getMissingDates(sorted) {
+  const miss = [];
+  for (let i = 1; i < sorted.length; i++) {
+    const diff = (new Date(sorted[i]) - new Date(sorted[i-1])) / 86400000;
+    for (let d = 1; d < diff; d++) {
+      const g = new Date(sorted[i-1]);
+      g.setDate(g.getDate() + d);
+      miss.push(g.toISOString().slice(0,10));
+    }
+  }
+  return miss;
+}
+const DIR16 = ['北','北北東','北東','東北東','東','東南東','南東','南南東',
+               '南','南南西','南西','西南西','西','西北西','北西','北北西'];
+function dirLabel(deg) { return DIR16[Math.round((deg||0) / 22.5) % 16]; }
+
+// =====================================================
+// 起動
+// =====================================================
+window.addEventListener('load', autoLoad);
+</script>
+</body>
+</html>
