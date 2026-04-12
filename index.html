@@ -238,6 +238,56 @@
       border: 1px solid #fdcb6e; border-radius: 4px;
       padding: 2px 8px; margin: 2px; color: #636e72;
     }
+
+    /* ===== RESPONSIVE (スマートフォン対応) ===== */
+    @media (max-width: 640px) {
+      /* ヘッダー：縦積みに切り替え */
+      header {
+        padding: 10px 14px;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      header h1 { font-size: 0.88rem; }
+      #headerMeta { display: none; }
+      #headerStatus { font-size: 0.72rem; }
+      .hdr-btn { padding: 5px 10px; font-size: 0.74rem; }
+
+      /* メイン：余白を縮小 */
+      main { padding: 12px 10px; }
+
+      /* カードグリッド：2列固定 */
+      .card-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+      .card { padding: 11px 12px; }
+      .card .value { font-size: 1.2rem; }
+
+      /* タブ・ボタン：小さく */
+      .tab-btn { padding: 4px 10px; font-size: 0.78rem; }
+      .period-btn { padding: 3px 9px; font-size: 0.74rem; }
+      .period-row label,
+      .custom-range-row label { font-size: 0.76rem; }
+      .date-input { font-size: 0.74rem; padding: 3px 6px; }
+
+      /* グラフ：高さを少し縮小 */
+      .chart-card { padding: 10px 10px; }
+      .charts-area { gap: 8px; }
+      .chart-card > div[style*="height:185px"] { height: 155px !important; }
+
+      /* テーブル：横スクロール対応 */
+      .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      table { min-width: 420px; font-size: 0.78rem; }
+      thead th { padding: 7px 8px; font-size: 0.72rem; }
+      td { padding: 6px 8px; }
+
+      /* 座標バー：小さく */
+      .coord-bar { font-size: 0.66rem; gap: 4px 10px; padding: 7px 10px; }
+
+      /* セクションヘッダー */
+      .section-title { font-size: 0.88rem; }
+      .section { margin-bottom: 16px; }
+    }
   </style>
 </head>
 <body>
