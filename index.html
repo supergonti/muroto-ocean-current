@@ -744,17 +744,13 @@ function renderTable() {
 }
 
 // --------- グラフ共通 ---------
+const IS_MOBILE = window.innerWidth <= 640;
+
 function chartCommon() {
-  const isMobile = window.innerWidth <= 640;
   return {
     responsive: true,
     maintainAspectRatio: false,
-    interaction: { mode: 'index', intersect: false },
-    plugins: {
-      tooltip: {
-        enabled: !isMobile   // スマホでは吹き出し非表示、PCでは通常表示
-      }
-    }
+    interaction: { mode: 'index', intersect: false }
   };
 }
 
@@ -851,7 +847,10 @@ function renderSpeedChart() {
     },
     options: {
       ...chartCommon(),
-      plugins: { legend: { labels: { font: { size: 10 } } } },
+      plugins: {
+        legend: { labels: { font: { size: 10 } } },
+        tooltip: { enabled: !IS_MOBILE }   // スマホでは吹き出し非表示
+      },
       scales: {
         ySpd: {
           type: 'linear', position: 'left',
@@ -895,7 +894,10 @@ function renderSalinityChart() {
     },
     options: {
       ...chartCommon(),
-      plugins: { legend: { labels: { font: { size: 10 } } } },
+      plugins: {
+        legend: { labels: { font: { size: 10 } } },
+        tooltip: { enabled: !IS_MOBILE }   // スマホでは吹き出し非表示
+      },
       scales: {
         y: {
           title: { display: true, text: '塩分(psu)', font: { size: 10 } },
