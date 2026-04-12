@@ -11,6 +11,10 @@ on:
         description: '取得日付 (例: 2026-04-11)。空欄なら前日を自動取得'
         required: false
         default: ''
+      collect_all:
+        description: '⚠️ 全データ再収集 — 座標修正後の全期間取得に使用。実行する場合は「true」と入力'
+        required: false
+        default: ''
 
 jobs:
   update:
@@ -45,20 +49,25 @@ jobs:
             mv muroto_offshore_current_all.csv output/
           fi
 
-      # ⑤ データ取得（前日分）
+      # ⑤ データ取得（前日分 or 全期間再収集）
       #    CMEMS認証は環境変数で自動処理（login()不要）
       - name: データ取得
         env:
           COPERNICUSMARINE_SERVICE_USERNAME: ${{ secrets.CMEMS_USERNAME }}
           COPERNICUSMARINE_SERVICE_PASSWORD: ${{ secrets.CMEMS_PASSWORD }}
         run: |
-          if [ -n "${{ github.event.inputs.target_date }}" ]; then
+          if [ "${{ github.event.inputs.collect_all }}" = "true" ]; then
+            echo "⚠️ 全データ再収集モード（2022-01-01 〜 今日）"
+            python main.py --all --no-skip
+          elif [ -n "${{ github.event.inputs.target_date }}" ]; then
             TARGET="${{ github.event.inputs.target_date }}"
+            echo "取得日付: $TARGET"
+            python main.py --date "$TARGET"
           else
             TARGET=$(date -d "yesterday" +%Y-%m-%d)
+            echo "取得日付: $TARGET（前日）"
+            python main.py --date "$TARGET"
           fi
-          echo "取得日付: $TARGET"
-          python main.py --date "$TARGET"
 
       # ⑥ ダッシュボード用JSファイルを再生成
       - name: ダッシュボードJS を再生成
