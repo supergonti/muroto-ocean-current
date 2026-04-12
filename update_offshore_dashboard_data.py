@@ -11,18 +11,16 @@ CSVの内容をJavaScript変数として書き出します。
   python update_offshore_dashboard_data.py
 
 【自動化】
-  main.py の末尾に以下を追加すると毎朝6時に自動更新されます:
-      import subprocess
-      subprocess.run(["python", str(Path(__file__).parent.parent / "update_offshore_dashboard_data.py")])
+  GitHub Actions により毎日自動実行されます。
 """
 
 import os
 import sys
 from pathlib import Path
 
-# パス設定
+# パス設定（すべてのファイルがルート階層にある構成に対応）
 script_dir = Path(__file__).parent
-csv_path   = script_dir / "muroto_offshore_current" / "output" / "muroto_offshore_current_all.csv"
+csv_path   = script_dir / "output" / "muroto_offshore_current_all.csv"
 js_path    = script_dir / "muroto_offshore_current_dashboard_data.js"
 
 def main():
