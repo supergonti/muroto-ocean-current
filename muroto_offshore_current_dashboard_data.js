@@ -1,7 +1,7 @@
 // 自動生成ファイル — update_offshore_dashboard_data.py により作成
 // 室戸沖潮流ダッシュボード V2.0 / Muroto Offshore Current Dashboard V2.0
 // このファイルを直接編集しないでください
-// 生成日時: 2026-04-12 18:20:22
+// 生成日時: 2026-04-12 23:06:03
 window.MUROTO_CSV_TEXT = `﻿date,point,lat,lon,u_ms,v_ms,speed_ms,speed_kn,direction,temp_c,salinity
 2022-01-01,北東,33.213852,134.246407,-0.2466,-0.3052,0.3924,0.7627,218.9,18.55,34.379
 2022-01-01,北西,33.213852,134.078931,-0.5097,0.1025,0.5199,1.0106,281.4,18.03,34.28
