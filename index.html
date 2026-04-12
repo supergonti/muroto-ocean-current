@@ -191,7 +191,7 @@
     td { padding: 8px 11px; text-align: center; border-bottom: 1px solid #f0f2f5; }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background: #f6f9ff; }
-    td.date-col { text-align: left; font-weight: 500; color: #34495e; white-space: nowrap; }
+    td.date-col { text-align: left; font-weight: 500; color: #34495e; white-space: normal; line-height: 1.3; }
 
     /* ===== ARROW ===== */
     .arrow-cell { display: flex; flex-direction: column; align-items: center; gap: 1px; }
@@ -278,13 +278,13 @@
       /* グラフ：高さを少し縮小 */
       .chart-card { padding: 10px 10px; }
       .charts-area { gap: 8px; }
-      .chart-card > div[style*="height:185px"] { height: 155px !important; }
+      .chart-card > div[style*="height:222px"] { height: 186px !important; }
 
       /* テーブル：横スクロール対応 */
       .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-      table { min-width: 420px; font-size: 0.78rem; }
-      thead th { padding: 7px 8px; font-size: 0.72rem; }
-      td { padding: 6px 8px; }
+      table { min-width: 340px; font-size: 0.76rem; }
+      thead th { padding: 6px 4px; font-size: 0.69rem; }
+      td { padding: 5px 4px; }
 
       /* 座標バー：小さく */
       .coord-bar { font-size: 0.66rem; gap: 4px 10px; padding: 7px 10px; }
@@ -415,7 +415,7 @@
         <div class="charts-area">
           <div class="chart-card">
             <div class="chart-label" id="chartLabel1">流速（kn）・水温（℃）</div>
-            <div style="position:relative;height:185px">
+            <div style="position:relative;height:222px">
               <canvas id="chartSpeed"></canvas>
               <!-- 方位記号（円＋北三角矢印） -->
               <svg id="compassRose" width="40" height="50" viewBox="0 0 80 100"
@@ -432,7 +432,7 @@
           </div>
           <div class="chart-card">
             <div class="chart-label" id="chartLabel2">塩分濃度（psu）</div>
-            <div style="position:relative;height:185px">
+            <div style="position:relative;height:222px">
               <canvas id="chartSalinity"></canvas>
             </div>
           </div>
@@ -444,12 +444,12 @@
             <table>
               <thead>
                 <tr>
-                  <th style="text-align:left;min-width:90px">日付</th>
-                  <th style="min-width:72px">流向</th>
-                  <th>流速(kn)</th>
-                  <th>流速(m/s)</th>
-                  <th>水温(℃)</th>
-                  <th>塩分(psu)</th>
+                  <th style="text-align:left;width:54px;min-width:54px">日付</th>
+                  <th style="width:62px;min-width:62px">流向</th>
+                  <th style="width:56px">流速<br>(kn)</th>
+                  <th style="width:56px">流速<br>(m/s)</th>
+                  <th style="width:50px">水温<br>(℃)</th>
+                  <th style="width:54px">塩分<br>(psu)</th>
                 </tr>
               </thead>
               <tbody id="dataTableBody"></tbody>
@@ -728,7 +728,7 @@ function renderTable() {
                 r.speed_kn < 1.5 ? 'speed-mid' : 'speed-hi';
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="date-col">${r.date}</td>
+      <td class="date-col">${r.date.slice(0,5).replace('-','/')}<br>${r.date.slice(5).replace('-','/')}</td>
       <td>
         <div class="arrow-cell">
           <span class="arrow" style="transform:rotate(${r.direction||0}deg);display:inline-block">↑</span>
@@ -745,10 +745,16 @@ function renderTable() {
 
 // --------- グラフ共通 ---------
 function chartCommon() {
+  const isMobile = window.innerWidth <= 640;
   return {
     responsive: true,
     maintainAspectRatio: false,
-    interaction: { mode: 'index', intersect: false }
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      tooltip: {
+        enabled: !isMobile   // スマホでは吹き出し非表示、PCでは通常表示
+      }
+    }
   };
 }
 
