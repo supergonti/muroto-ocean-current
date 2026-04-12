@@ -35,26 +35,7 @@ jobs:
       - name: 依存パッケージをインストール
         run: pip install -r requirements.txt
 
-      # ④ CMEMS 認証情報を設定（GitHub Secrets から読み込み）
-      - name: CMEMS 認証情報を設定
-        env:
-          CMEMS_USERNAME: ${{ secrets.CMEMS_USERNAME }}
-          CMEMS_PASSWORD: ${{ secrets.CMEMS_PASSWORD }}
-        run: |
-          python - <<'EOF'
-          import os
-          import copernicusmarine
-          username = os.environ["CMEMS_USERNAME"]
-          password = os.environ["CMEMS_PASSWORD"]
-          copernicusmarine.login(
-              username=username,
-              password=password,
-              overwrite_configuration_file=True,
-          )
-          print("CMEMS 認証完了")
-          EOF
-
-      # ⑤ output フォルダ作成 ＆ CSV の初回移行
+      # ④ output フォルダ作成 ＆ CSV の初回移行
       #    （初回のみ: ルートにあるCSVを output/ に移動）
       - name: output フォルダ準備
         run: |
@@ -64,8 +45,12 @@ jobs:
             mv muroto_offshore_current_all.csv output/
           fi
 
-      # ⑥ データ取得（前日分）
+      # ⑤ データ取得（前日分）
+      #    CMEMS認証は環境変数で自動処理（login()不要）
       - name: データ取得
+        env:
+          COPERNICUSMARINE_SERVICE_USERNAME: ${{ secrets.CMEMS_USERNAME }}
+          COPERNICUSMARINE_SERVICE_PASSWORD: ${{ secrets.CMEMS_PASSWORD }}
         run: |
           if [ -n "${{ github.event.inputs.target_date }}" ]; then
             TARGET="${{ github.event.inputs.target_date }}"
@@ -75,11 +60,11 @@ jobs:
           echo "取得日付: $TARGET"
           python main.py --date "$TARGET"
 
-      # ⑦ ダッシュボード用JSファイルを再生成
+      # ⑥ ダッシュボード用JSファイルを再生成
       - name: ダッシュボードJS を再生成
         run: python update_offshore_dashboard_data.py
 
-      # ⑧ 変更があればコミット＆プッシュ
+      # ⑦ 変更があればコミット＆プッシュ
       - name: コミット＆プッシュ
         run: |
           git config user.name "github-actions[bot]"
