@@ -1,0 +1,104 @@
+name: 室戸沖データ自動更新 / Update Muroto Ocean Current Data
+
+on:
+  schedule:
+    # 毎日 21:30 UTC = 翌 6:30 JST に実行
+    - cron: '30 21 * * *'
+  workflow_dispatch:
+    # 手動実行も可能（テスト・強制更新に使用）
+    inputs:
+      target_date:
+        description: '取得日付 (例: 2026-04-11)。空欄なら前日を自動取得'
+        required: false
+        default: ''
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write   # CSVとJSのコミット・プッシュに必要
+
+    steps:
+      # ① リポジトリをチェックアウト
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      # ② Python 3.11 をセットアップ
+      - name: Python 3.11 をセットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      # ③ 依存パッケージをインストール
+      - name: 依存パッケージをインストール
+        run: pip install -r requirements.txt
+
+      # ④ CMEMS 認証情報を設定（GitHub Secrets から読み込み）
+      - name: CMEMS 認証情報を設定
+        env:
+          CMEMS_USERNAME: ${{ secrets.CMEMS_USERNAME }}
+          CMEMS_PASSWORD: ${{ secrets.CMEMS_PASSWORD }}
+        run: |
+          python - <<'EOF'
+          import os
+          import copernicusmarine
+          username = os.environ["CMEMS_USERNAME"]
+          password = os.environ["CMEMS_PASSWORD"]
+          copernicusmarine.login(
+              username=username,
+              password=password,
+              overwrite_configuration_file=True,
+          )
+          print("CMEMS 認証完了")
+          EOF
+
+      # ⑤ output フォルダ作成 ＆ CSV の初回移行
+      #    （初回のみ: ルートにあるCSVを output/ に移動）
+      - name: output フォルダ準備
+        run: |
+          mkdir -p output
+          if [ -f "muroto_offshore_current_all.csv" ] && [ ! -f "output/muroto_offshore_current_all.csv" ]; then
+            echo "CSVをoutputフォルダへ移動します（初回移行）"
+            mv muroto_offshore_current_all.csv output/
+          fi
+
+      # ⑥ データ取得（前日分）
+      - name: データ取得
+        run: |
+          if [ -n "${{ github.event.inputs.target_date }}" ]; then
+            TARGET="${{ github.event.inputs.target_date }}"
+          else
+            TARGET=$(date -d "yesterday" +%Y-%m-%d)
+          fi
+          echo "取得日付: $TARGET"
+          python main.py --date "$TARGET"
+
+      # ⑦ ダッシュボード用JSファイルを再生成
+      - name: ダッシュボードJS を再生成
+        run: python update_offshore_dashboard_data.py
+
+      # ⑧ 変更があればコミット＆プッシュ
+      - name: コミット＆プッシュ
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add output/muroto_offshore_current_all.csv
+          git add muroto_offshore_current_dashboard_data.js
+          # 初回移行でルートのCSVが消えた場合の処理
+          git add -u muroto_offshore_current_all.csv 2>/dev/null || true
+
+          if git diff --staged --quiet; then
+            echo "変更なし（既に最新データ）。コミットをスキップします。"
+          else
+            if [ -n "${{ github.event.inputs.target_date }}" ]; then
+              DATE_LABEL="${{ github.event.inputs.target_date }}"
+            else
+              DATE_LABEL=$(date -d "yesterday" +%Y-%m-%d)
+            fi
+            git commit -m "データ自動更新: ${DATE_LABEL} [skip ci]"
+            git push
+            echo "コミット＆プッシュ完了"
+          fi
