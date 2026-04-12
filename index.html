@@ -241,16 +241,21 @@
 
     /* ===== RESPONSIVE (スマートフォン対応) ===== */
     @media (max-width: 640px) {
-      /* ヘッダー：縦積みに切り替え */
+      /* ヘッダー：タイトルと再読み込みだけに絞る */
       header {
-        padding: 10px 14px;
-        flex-wrap: wrap;
-        gap: 8px;
+        padding: 8px 12px;
+        gap: 6px;
       }
-      header h1 { font-size: 0.88rem; }
+      header h1 {
+        font-size: 0.82rem;
+        white-space: normal;
+        line-height: 1.3;
+      }
       #headerMeta { display: none; }
-      #headerStatus { font-size: 0.72rem; }
-      .hdr-btn { padding: 5px 10px; font-size: 0.74rem; }
+      #headerStatus { display: none; }
+      /* 手動選択ボタンはスマホでは非表示 */
+      #manualBtn { display: none; }
+      #reloadBtn { padding: 6px 12px; font-size: 0.76rem; }
 
       /* メイン：余白を縮小 */
       main { padding: 12px 10px; }
