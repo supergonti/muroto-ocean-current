@@ -1,0 +1,54 @@
+2026-04-14 12:23:05 [INFO] 既存データ: 1563 日分を確認
+2026-04-14 12:23:05 [INFO] [2026-04-13] データ取得中... (1/1)
+2026-04-14 12:23:05 [INFO] [2026-04-13] CMEMSダウンロード試行...
+2026-04-14 03:23:06 [INFO]   → CMEMS予報DL: ['uo', 'vo'] (cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m)
+2026-04-14 03:23:06 [INFO] Downloading Copernicus Marine data requires a Copernicus Marine username and password, sign up for free at: https://data.marine.copernicus.eu/register
+2026-04-14 03:23:06 [WARNING]   → cmems_muroto_20260413_cur.nc が作成されませんでした（スキップ）
+2026-04-14 03:23:06 [INFO]   → CMEMS予報DL: ['thetao'] (cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m)
+2026-04-14 03:23:06 [INFO] Downloading Copernicus Marine data requires a Copernicus Marine username and password, sign up for free at: https://data.marine.copernicus.eu/register
+2026-04-14 03:23:06 [WARNING]   → cmems_muroto_20260413_tmp.nc が作成されませんでした（スキップ）
+2026-04-14 03:23:06 [INFO]   → CMEMS予報DL: ['so'] (cmems_mod_glo_phy-so_anfc_0.083deg_P1D-m)
+2026-04-14 03:23:06 [INFO] Downloading Copernicus Marine data requires a Copernicus Marine username and password, sign up for free at: https://data.marine.copernicus.eu/register
+2026-04-14 03:23:06 [WARNING]   → cmems_muroto_20260413_sal.nc が作成されませんでした（スキップ）
+2026-04-14 03:23:06 [ERROR]   → 予報データの全DLに失敗
+2026-04-14 03:23:06 [INFO] [2026-04-13] JCOPE OPeNDAPアクセス試行...
+2026-04-14 03:23:06 [INFO] OPeNDAP接続: http://synthesis.jamstec.go.jp/JCOPE2M/opendap/daily/2026/JCOPE2M_20260413.nc
+2026-04-14 03:23:06 [WARNING]   → OPeNDAP接続失敗: [Errno -78] NetCDF: Authorization failure: 'http://synthesis.jamstec.go.jp/JCOPE2M/opendap/daily/2026/JCOPE2M_20260413.nc'
+2026-04-14 03:23:06 [ERROR] [2026-04-13] すべてのデータソースから取得失敗
+2026-04-14 03:23:06 [WARNING] [2026-04-13] データ取得失敗 → スキップ
+2026-04-14 12:23:10 [INFO] 既存データ: 1563 日分を確認
+2026-04-14 12:23:10 [INFO] [2026-04-13] データ取得中... (1/1)
+2026-04-14 12:23:10 [INFO] [2026-04-13] CMEMSダウンロード試行...
+2026-04-14 03:23:11 [INFO]   → CMEMS予報DL: ['uo', 'vo'] (cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m)
+2026-04-14 03:23:11 [INFO] Downloading Copernicus Marine data requires a Copernicus Marine username and password, sign up for free at: https://data.marine.copernicus.eu/register
+2026-04-14 03:23:11 [WARNING]   → cmems_muroto_20260413_cur.nc が作成されませんでした（スキップ）
+2026-04-14 03:23:11 [INFO]   → CMEMS予報DL: ['thetao'] (cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m)
+2026-04-14 03:23:11 [INFO] Downloading Copernicus Marine data requires a Copernicus Marine username and password, sign up for free at: https://data.marine.copernicus.eu/register
+2026-04-14 03:23:11 [WARNING]   → cmems_muroto_20260413_tmp.nc が作成されませんでした（スキップ）
+2026-04-14 03:23:11 [INFO]   → CMEMS予報DL: ['so'] (cmems_mod_glo_phy-so_anfc_0.083deg_P1D-m)
+2026-04-14 03:23:11 [INFO] Downloading Copernicus Marine data requires a Copernicus Marine username and password, sign up for free at: https://data.marine.copernicus.eu/register
+2026-04-14 03:23:11 [WARNING]   → cmems_muroto_20260413_sal.nc が作成されませんでした（スキップ）
+2026-04-14 03:23:11 [ERROR]   → 予報データの全DLに失敗
+2026-04-14 03:23:11 [INFO] [2026-04-13] JCOPE OPeNDAPアクセス試行...
+2026-04-14 03:23:11 [INFO] OPeNDAP接続: http://synthesis.jamstec.go.jp/JCOPE2M/opendap/daily/2026/JCOPE2M_20260413.nc
+2026-04-14 03:23:11 [WARNING]   → OPeNDAP接続失敗: [Errno -78] NetCDF: Authorization failure: 'http://synthesis.jamstec.go.jp/JCOPE2M/opendap/daily/2026/JCOPE2M_20260413.nc'
+2026-04-14 03:23:11 [ERROR] [2026-04-13] すべてのデータソースから取得失敗
+2026-04-14 03:23:11 [WARNING] [2026-04-13] データ取得失敗 → スキップ
+2026-04-15 06:21:27 [INFO] 既存データ: 1563 日分を確認
+2026-04-15 06:21:27 [INFO] [2026-04-14] データ取得中... (1/1)
+2026-04-15 06:21:27 [INFO] [2026-04-14] CMEMSダウンロード試行...
+2026-04-14 21:21:28 [INFO]   → CMEMS予報DL: ['uo', 'vo'] (cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m)
+2026-04-14 21:21:28 [INFO] Downloading Copernicus Marine data requires a Copernicus Marine username and password, sign up for free at: https://data.marine.copernicus.eu/register
+2026-04-14 21:21:28 [WARNING]   → cmems_muroto_20260414_cur.nc が作成されませんでした（スキップ）
+2026-04-14 21:21:28 [INFO]   → CMEMS予報DL: ['thetao'] (cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m)
+2026-04-14 21:21:28 [INFO] Downloading Copernicus Marine data requires a Copernicus Marine username and password, sign up for free at: https://data.marine.copernicus.eu/register
+2026-04-14 21:21:28 [WARNING]   → cmems_muroto_20260414_tmp.nc が作成されませんでした（スキップ）
+2026-04-14 21:21:28 [INFO]   → CMEMS予報DL: ['so'] (cmems_mod_glo_phy-so_anfc_0.083deg_P1D-m)
+2026-04-14 21:21:28 [INFO] Downloading Copernicus Marine data requires a Copernicus Marine username and password, sign up for free at: https://data.marine.copernicus.eu/register
+2026-04-14 21:21:28 [WARNING]   → cmems_muroto_20260414_sal.nc が作成されませんでした（スキップ）
+2026-04-14 21:21:28 [ERROR]   → 予報データの全DLに失敗
+2026-04-14 21:21:28 [INFO] [2026-04-14] JCOPE OPeNDAPアクセス試行...
+2026-04-14 21:21:28 [INFO] OPeNDAP接続: http://synthesis.jamstec.go.jp/JCOPE2M/opendap/daily/2026/JCOPE2M_20260414.nc
+2026-04-14 21:21:28 [WARNING]   → OPeNDAP接続失敗: [Errno -78] NetCDF: Authorization failure: 'http://synthesis.jamstec.go.jp/JCOPE2M/opendap/daily/2026/JCOPE2M_20260414.nc'
+2026-04-14 21:21:28 [ERROR] [2026-04-14] すべてのデータソースから取得失敗
+2026-04-14 21:21:28 [WARNING] [2026-04-14] データ取得失敗 → スキップ

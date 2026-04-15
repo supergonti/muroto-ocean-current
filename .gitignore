@@ -1,0 +1,27 @@
+# NetCDF キャッシュ（大容量・GitHub除外）
+muroto_offshore_current/output/cmems/
+muroto_offshore_current/output/nc_cache/
+muroto_offshore_current/cmems/
+
+# ログファイル
+muroto_offshore_current/output/run.log
+
+# 月次サマリー（自動生成・除外）
+muroto_offshore_current/output/*_monthly_summary.csv
+
+# バックアップCSV（v1）
+muroto_offshore_current/output/muroto_current_all_legacy_v1.csv
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# macOS
+.DS_Store

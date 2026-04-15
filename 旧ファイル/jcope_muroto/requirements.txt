@@ -1,0 +1,22 @@
+# 室戸沖 海流データ収集システム - 必要ライブラリ
+# インストール: pip install -r requirements.txt
+
+# --- 必須ライブラリ ---
+numpy>=1.24.0           # 数値計算
+pandas>=2.0.0           # データフレーム・CSV処理
+xarray>=2023.1.0        # NetCDF操作
+netCDF4>=1.6.0          # NetCDFバックエンド
+requests>=2.31.0        # HTTP通信（疎通確認）
+
+# --- JCOPE OPeNDAP アクセス（推奨） ---
+# xarrayのnetCDF4エンジンで直接OPeNDAPにアクセス可能
+# 追加設定不要（xarray + netCDF4 で対応）
+
+# --- CMEMS アクセス（代替ソース・任意） ---
+# JAMSTECへの申請完了前に利用可能
+# https://marine.copernicus.eu で無料登録後に使用
+copernicusmarine>=1.0.0
+
+# --- データ可視化（任意） ---
+matplotlib>=3.7.0       # グラフ描画
+seaborn>=0.12.0         # 統計グラフ
