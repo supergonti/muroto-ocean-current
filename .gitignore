@@ -2,9 +2,17 @@
 muroto_offshore_current/output/cmems/
 muroto_offshore_current/output/nc_cache/
 muroto_offshore_current/cmems/
+jcope_muroto/output/cmems/
+jcope_muroto/output/nc_cache/
 
 # ログファイル
 muroto_offshore_current/output/run.log
+jcope_muroto/output/run.log
+
+# 認証情報を含む設定ファイル（絶対にGitHubにアップしない）
+config.py
+jcope_muroto/config.py
+muroto_offshore_current/config.py
 
 # 月次サマリー（自動生成・除外）
 muroto_offshore_current/output/*_monthly_summary.csv
